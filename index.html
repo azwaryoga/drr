@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Excel Report Generator</title>
+	<style>
+		:root {
+			font-family: "Lucida Console", "Courier New", monospace;
+			color: #111;
+			background: #008080;
+		}
+		* { box-sizing: border-box; }
+		body { margin: 0; padding: 28px 14px; }
+		main {
+			width: min(900px, 100%);
+			margin: 0 auto;
+			border: 2px outset #ddd;
+			background: #dddccb;
+		}
+		.program-title {
+			margin: 0;
+			padding: 8px 10px;
+			background: #000080;
+			color: #fff;
+			font-size: 14px;
+			letter-spacing: .04em;
+		}
+		.program-body { padding: 12px; }
+		p { font-size: 12px; }
+		section { margin: 14px 0; padding: 10px; border: 1px solid #808080; }
+		button {
+			padding: 5px 10px;
+			border: 2px outset #eee;
+			border-radius: 0;
+			background: #c0c0c0;
+			color: #111;
+			font: inherit;
+			font-size: 12px;
+			cursor: pointer;
+		}
+		button:active { border-style: inset; }
+		button:disabled { color: #777; cursor: default; }
+		#fileName, #rowStatus { font-size: 11px; }
+		h2 { margin: 0 0 9px; font-size: 13px; }
+		#reportOutput {
+			display: block;
+			width: 100%;
+			margin-top: 8px;
+			padding: 10px;
+			border: 2px inset #eee;
+			border-radius: 0;
+			background: #fff;
+			color: #000080;
+			font: 12px/1.5 "Lucida Console", "Courier New", monospace;
+			white-space: pre;
+			overflow: auto;
+		}
+		#rowStatus { margin: 0; padding: 7px 10px; border-top: 1px solid #888; }
+		@media (max-width: 600px) {
+			body { padding: 8px; }
+			.program-body { padding: 8px; }
+			#reportOutput { font-size: 11px; }
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<h1 class="program-title">EXCEL REPORT GENERATOR</h1>
+		<div class="program-body">
+		<p>Upload an Excel file to create one hotel report from the mapped cells.</p>
+		<section aria-label="Upload spreadsheet">
+			<button id="uploadButton" type="button">Upload Excel</button>
+			<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+			<span id="fileName">No file selected</span>
+		</section>
+		<section aria-label="Generated text report">
+			<h2>Text report</h2>
+			<button id="copyButton" type="button" disabled>Copy report</button>
+			<br>
+			<textarea id="reportOutput" rows="36" readonly aria-label="Generated text report">Your generated text report will appear here.</textarea>
+		</section>
+		<p id="rowStatus">No report generated.</p>
+		</div>
+	</main>
+
+	<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+	<script>
+		const fileInput = document.querySelector('#fileInput');
+		const fileName = document.querySelector('#fileName');
+		const rowStatus = document.querySelector('#rowStatus');
+		const reportOutput = document.querySelector('#reportOutput');
+		const copyButton = document.querySelector('#copyButton');
+
+		document.querySelector('#uploadButton').addEventListener('click', () => fileInput.click());
+
+		function showMessage(message) {
+			reportOutput.value = message;
+			copyButton.disabled = true;
+			rowStatus.textContent = 'No report generated.';
+		}
+
+		function removeDecimals(value) {
+			return String(value).trim().replace(/([.,])(\d+)(?=(?:%|\))?$)/, (match, separator, digits) => {
+				if (separator === ',' && digits.length === 3) return match;
+				return '';
+			});
+		}
+
+		function getCellValue(sheet, address) {
+			const cell = sheet[address];
+			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return '';
+			if (cell.w !== undefined && cell.w !== '') return removeDecimals(cell.w);
+			if (typeof cell.v === 'number' && cell.z) return removeDecimals(XLSX.utils.format_cell(cell));
+			return removeDecimals(cell.v);
+		}
+
+		function getPercentValue(sheet, address) {
+			const cell = sheet[address];
+			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return '';
+			const displayed = String(cell.w || cell.v).trim();
+			let percentage;
+			if (typeof cell.v === 'number') {
+				percentage = cell.v * 100;
+			} else if (displayed.includes('%')) {
+				percentage = Number(displayed.replace('%', '').replace(',', '.'));
+			} else {
+				const numericValue = Number(displayed.replace(/,/g, ''));
+				percentage = Number.isFinite(numericValue) ? numericValue * 100 : NaN;
+			}
+			if (!Number.isFinite(percentage)) return removeDecimals(displayed);
+			const wholePercent = Math.floor(percentage);
+			const roundedPercent = wholePercent + (percentage - wholePercent > 0.5 ? 1 : 0);
+			return `${roundedPercent}%`;
+		}
+
+		function getDateValue(sheet, address) {
+			const cell = sheet[address];
+			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return null;
+			if (cell.v instanceof Date && !Number.isNaN(cell.v.getTime())) {
+				return new Date(Date.UTC(cell.v.getFullYear(), cell.v.getMonth(), cell.v.getDate()));
+			}
+			if (typeof cell.v === 'number') {
+				const excelDate = XLSX.SSF.parse_date_code(cell.v);
+				if (excelDate) return new Date(Date.UTC(excelDate.y, excelDate.m - 1, excelDate.d));
+			}
+			const text = String(cell.w || cell.v).trim();
+			const monthDayYear = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+			if (monthDayYear) {
+				const month = Number(monthDayYear[1]);
+				const day = Number(monthDayYear[2]);
+				let year = Number(monthDayYear[3]);
+				if (year < 100) year += year < 30 ? 2000 : 1900;
+				const parsed = new Date(Date.UTC(year, month - 1, day));
+				if (parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) return parsed;
+			}
+			let parts = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+			if (parts) return new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
+			const parsed = new Date(text);
+			return Number.isNaN(parsed.getTime()) ? null : new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+		}
+
+		function formatReportDate(date) {
+			const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+			const day = String(date.getUTCDate()).padStart(2, '0');
+			return `${month}/${day}/${date.getUTCFullYear()}`;
+		}
+
+		function formatDate(date, options) {
+			return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: 'UTC' }).format(date);
+		}
+
+		function buildReport(sheet) {
+			const value = (row, column) => getCellValue(sheet, `${column}${row}`);
+			const trio = (row, label, percent = false) => {
+				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				return `${label} : ${get('D')} // ${get('G')} // ${get('J')}`;
+			};
+			const mtd = (row, label, percent = false) => {
+				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				return `${label} : ${get('G')} vs ${get('H')}`;
+			};
+			const ytd = (row, label, percent = false) => {
+				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				return `${label} : ${get('J')} vs ${get('K')}`;
+			};
+			const reportDate = getDateValue(sheet, 'L2');
+			const dateText = reportDate ? formatReportDate(reportDate) : '';
+			const [reportDay, reportMonth, reportYear] = dateText.split('/').map(Number);
+			const displayedReportDate = reportDate
+				? new Date(Date.UTC(reportYear, reportMonth - 1, reportDay))
+				: null;
+			const firstForecastDate = displayedReportDate
+				? new Date(displayedReportDate.getTime() + 86400000)
+				: null;
+			const forecastDates = Array.from({ length: 7 }, (_, index) => {
+				if (!firstForecastDate) return '';
+				const date = new Date(firstForecastDate.getTime() + index * 86400000);
+				return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
+			});
+			const blank = (label) => `${label} :`;
+			const forecastLabelDate = forecastDates[0] || '';
+
+			return [
+				'*Good Morning*',
+				'*KIYANA AULARIS HOTEL*',
+				'',
+				`Date : ${dateText}`,
+				trio(65, 'RNA'),
+				trio(66, 'OOO'),
+				trio(67, 'HU'),
+				trio(70, 'RNO'),
+				trio(69, 'RNS'),
+				trio(72, 'OCC', true),
+				trio(78, 'ARR'),
+				'',
+				trio(80, 'REV PAR'),
+				trio(10, 'ROOM REV'),
+				trio(16, 'F&B REV'),
+				trio(20, 'Laundry'),
+				trio(21, 'OTHER REV'),
+				trio(22, 'TTL REV NET'),
+				'',
+				blank('EA Today'),
+				blank('ED Today'),
+				blank('Room Breakfast'),
+				blank('Rooms Only'),
+				'',
+				`*Today Estimated* ${forecastLabelDate} :`,
+				`*Forecast* ${forecastLabelDate} :`,
+				'',
+				'*MONTH TO DATE ACTUAL vs BUDGET*',
+				mtd(72, 'OCC', true),
+				mtd(78, 'ARR'),
+				mtd(80, 'RevPAR'),
+				mtd(10, 'Room Rev'),
+				mtd(16, 'F&B Rev'),
+				mtd(20, 'Laundry'),
+				mtd(21, 'Oth Rev'),
+				mtd(22, 'Rev TTL'),
+				'',
+				'*YEAR TO DATE ACTUAL vs BUDGET*',
+				ytd(72, 'OCC', true),
+				ytd(78, 'ARR'),
+				ytd(80, 'RevPar'),
+				ytd(10, 'Room Rev'),
+				ytd(16, 'F&B Rev'),
+				ytd(20, 'Laundry'),
+				ytd(21, 'Oth Rev'),
+				ytd(22, 'Rev TTL'),
+				'',
+				'*SEGMENTS*',
+				"Corporate : 0",
+				"Government : 0",
+				"Websites : 0",
+				"FIT : 0",
+				"WIG : 0",
+				"OTAs : 0",
+				"House Use : 0",
+				"Compliment : 0",
+				'',
+				'*7 days forecast*',
+				...forecastDates.map((date) => `${date} :0 (00,00%)`),
+				'',
+				'VIP EA:',
+				blank('Company EA'),
+				blank('Company In House'),
+				blank('Company ED'),
+				blank('Group In House'),
+				blank('Group Arrivals'),
+				blank('Group Departures'),
+				"*Today's Events:*"
+			].join('\n');
+		}
+
+		copyButton.addEventListener('click', async () => {
+			try {
+				await navigator.clipboard.writeText(reportOutput.value);
+				copyButton.textContent = 'Copied';
+			} catch {
+				reportOutput.focus();
+				reportOutput.select();
+				const copied = document.execCommand('copy');
+				copyButton.textContent = copied ? 'Copied' : 'Select and copy';
+			}
+			window.setTimeout(() => { copyButton.textContent = 'Copy report'; }, 1500);
+		});
+
+		fileInput.addEventListener('change', async () => {
+			const file = fileInput.files && fileInput.files[0];
+			if (!file) return;
+			fileName.textContent = file.name;
+
+			if (!window.XLSX) {
+				showMessage('EXCEL READER COULD NOT LOAD. CHECK YOUR INTERNET CONNECTION AND TRY AGAIN.');
+				return;
+			}
+
+			try {
+				const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+				const sheetName = workbook.SheetNames.find((name) => name.trim().toLowerCase() === 'drr');
+				if (!sheetName) {
+					showMessage('WORKSHEET NAMED "DRR" WAS NOT FOUND IN THIS FILE.');
+					return;
+				}
+				const sheet = workbook.Sheets[sheetName];
+				if (!sheet || !sheet['!ref']) {
+					showMessage('THE REPORT WORKSHEET IS EMPTY.');
+					return;
+				}
+				reportOutput.value = buildReport(sheet);
+				copyButton.disabled = false;
+				rowStatus.textContent = `Report generated from worksheet: ${sheetName}`;
+			} catch {
+				showMessage('FILE COULD NOT BE READ. PLEASE CHOOSE A VALID EXCEL FILE.');
+			}
+		});
+	</script>
+</body>
+</html>
