@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -74,6 +75,20 @@
 			<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
 			<span id="fileName">No file selected</span>
 		</section>
+		<section aria-label="Manual report inputs">
+			<h2>Manual report inputs</h2>
+			<p>Enter the values below. The report will update automatically after an Excel file is uploaded.</p>
+			<label for="eaTodayInput">EA Today</label><br>
+			<input id="eaTodayInput" type="text" tabindex="1" inputmode="numeric" placeholder="Enter EA Today"><br><br>
+			<label for="edTodayInput">ED Today</label><br>
+			<input id="edTodayInput" type="text" tabindex="2" inputmode="numeric" placeholder="Enter ED Today"><br><br>
+			<label for="roomBreakfastInput">Room Breakfast</label><br>
+			<input id="roomBreakfastInput" type="text" tabindex="3" inputmode="numeric" placeholder="Enter Room Breakfast"><br><br>
+			<label for="roomsOnlyInput">Rooms Only</label><br>
+			<input id="roomsOnlyInput" type="text" tabindex="4" inputmode="numeric" placeholder="Enter Rooms Only"><br><br>
+			<label for="todayEstimatedInput">Today Estimated</label><br>
+			<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal" placeholder="Enter Today Estimated">
+		</section>
 		<section aria-label="Generated text report">
 			<h2>Text report</h2>
 			<button id="copyButton" type="button" disabled>Copy report</button>
@@ -91,6 +106,15 @@
 		const rowStatus = document.querySelector('#rowStatus');
 		const reportOutput = document.querySelector('#reportOutput');
 		const copyButton = document.querySelector('#copyButton');
+		const manualInputIds = [
+			'eaTodayInput',
+			'edTodayInput',
+			'roomBreakfastInput',
+			'roomsOnlyInput',
+			'todayEstimatedInput'
+		];
+		let currentDrrSheet = null;
+		let currentStatisticSheet = null;
 
 		document.querySelector('#uploadButton').addEventListener('click', () => fileInput.click());
 
@@ -170,7 +194,18 @@
 			return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: 'UTC' }).format(date);
 		}
 
-		function buildReport(sheet) {
+		function getManualInput(id) {
+			return document.querySelector(`#${id}`).value.trim();
+		}
+
+		function calculateForecast(todayEstimated) {
+			if (todayEstimated === '') return '';
+			const numericValue = Number(todayEstimated.replace(/,/g, ''));
+			if (!Number.isFinite(numericValue)) return '';
+			return `${((numericValue / 31) * 100).toFixed(2)}%`;
+		}
+
+		function buildReport(sheet, statisticSheet) {
 			const value = (row, column) => getCellValue(sheet, `${column}${row}`);
 			const trio = (row, label, percent = false) => {
 				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
@@ -191,7 +226,7 @@
 				? new Date(Date.UTC(reportYear, reportMonth - 1, reportDay))
 				: null;
 			const firstForecastDate = displayedReportDate
-				? new Date(displayedReportDate.getTime() + 86400000)
+				? new Date(displayedReportDate.getTime() + 2 * 86400000)
 				: null;
 			const forecastDates = Array.from({ length: 7 }, (_, index) => {
 				if (!firstForecastDate) return '';
@@ -199,7 +234,12 @@
 				return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 			});
 			const blank = (label) => `${label} :`;
+			const segmentValue = (address) => address
+				? getCellValue(statisticSheet, address)
+				: '';
 			const forecastLabelDate = forecastDates[0] || '';
+			const todayEstimated = getManualInput('todayEstimatedInput');
+			const forecastValue = calculateForecast(todayEstimated);
 
 			return [
 				'*Good Morning*',
@@ -221,13 +261,13 @@
 				trio(21, 'OTHER REV'),
 				trio(22, 'TTL REV NET'),
 				'',
-				blank('EA Today'),
-				blank('ED Today'),
-				blank('Room Breakfast'),
-				blank('Rooms Only'),
+				`EA Today : ${getManualInput('eaTodayInput')}`,
+				`ED Today : ${getManualInput('edTodayInput')}`,
+				`Room Breakfast : ${getManualInput('roomBreakfastInput')}`,
+				`Rooms Only : ${getManualInput('roomsOnlyInput')}`,
 				'',
-				`*Today Estimated* ${forecastLabelDate} :`,
-				`*Forecast* ${forecastLabelDate} :`,
+				`*Today Estimated* ${forecastLabelDate} : ${todayEstimated}`,
+				`*Forecast* ${forecastLabelDate} : ${forecastValue}`,
 				'',
 				'*MONTH TO DATE ACTUAL vs BUDGET*',
 				mtd(72, 'OCC', true),
@@ -250,14 +290,16 @@
 				ytd(22, 'Rev TTL'),
 				'',
 				'*SEGMENTS*',
-				"Corporate : 0",
-				"Government : 0",
-				"Websites : 0",
-				"FIT : 0",
-				"WIG : 0",
-				"OTAs : 0",
-				"House Use : 0",
-				"Compliment : 0",
+				`Corporate : ${segmentValue('E18')}`,
+				`Government : ${segmentValue('E24')}`,
+				`FIT : ${segmentValue('E11')}`,
+				`WIG : ${segmentValue('E10')}`,
+				`OTA : ${segmentValue('E34')}`,
+				`House Use : ${segmentValue('E51')}`,
+				`Compliment : ${segmentValue('E50')}`,
+				`Website : ${segmentValue('')}`,
+				`WEB : ${segmentValue('')}`,
+				`COMPANY : ${segmentValue('')}`,
 				'',
 				'*7 days forecast*',
 				...forecastDates.map((date) => `${date} :0 (00,00%)`),
@@ -272,6 +314,15 @@
 				"*Today's Events:*"
 			].join('\n');
 		}
+
+		function refreshReport() {
+			if (!currentDrrSheet || !currentStatisticSheet) return;
+			reportOutput.value = buildReport(currentDrrSheet, currentStatisticSheet);
+		}
+
+		manualInputIds.forEach((id) => {
+			document.querySelector(`#${id}`).addEventListener('input', refreshReport);
+		});
 
 		copyButton.addEventListener('click', async () => {
 			try {
@@ -308,9 +359,26 @@
 					showMessage('THE REPORT WORKSHEET IS EMPTY.');
 					return;
 				}
-				reportOutput.value = buildReport(sheet);
+
+				const statisticSheetName = workbook.SheetNames.find(
+					(name) => name.trim().toLowerCase() === 'statistic'
+				);
+				if (!statisticSheetName) {
+					showMessage('WORKSHEET NAMED "STATISTIC" WAS NOT FOUND IN THIS FILE.');
+					return;
+				}
+
+				const statisticSheet = workbook.Sheets[statisticSheetName];
+				if (!statisticSheet || !statisticSheet['!ref']) {
+					showMessage('THE STATISTIC WORKSHEET IS EMPTY.');
+					return;
+				}
+
+				currentDrrSheet = sheet;
+				currentStatisticSheet = statisticSheet;
+				refreshReport();
 				copyButton.disabled = false;
-				rowStatus.textContent = `Report generated from worksheet: ${sheetName}`;
+				rowStatus.textContent = `Report generated from worksheets: ${sheetName} and ${statisticSheetName}`;
 			} catch {
 				showMessage('FILE COULD NOT BE READ. PLEASE CHOOSE A VALID EXCEL FILE.');
 			}
