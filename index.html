@@ -225,9 +225,12 @@
 			const displayedReportDate = reportDate
 				? new Date(Date.UTC(reportYear, reportMonth - 1, reportDay))
 				: null;
+
+			// Forecast starts 2 days after the report date.
 			const firstForecastDate = displayedReportDate
 				? new Date(displayedReportDate.getTime() + 2 * 86400000)
 				: null;
+
 			const forecastDates = Array.from({ length: 7 }, (_, index) => {
 				if (!firstForecastDate) return '';
 				const date = new Date(firstForecastDate.getTime() + index * 86400000);
