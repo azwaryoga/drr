@@ -144,13 +144,35 @@
 					placeholder="Enter Rooms Only"><br><br>
 				<label for="todayEstimatedInput">Today Estimated</label><br>
 				<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal"
-					placeholder="Enter Today Estimated">
+					placeholder="Enter Today Estimated"><br><br>
+
+				<label for="forecastDay1Input">Forecast Day 1</label><br>
+				<input id="forecastDay1Input" type="text" tabindex="6" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay2Input">Forecast Day 2</label><br>
+				<input id="forecastDay2Input" type="text" tabindex="7" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay3Input">Forecast Day 3</label><br>
+				<input id="forecastDay3Input" type="text" tabindex="8" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay4Input">Forecast Day 4</label><br>
+				<input id="forecastDay4Input" type="text" tabindex="9" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay5Input">Forecast Day 5</label><br>
+				<input id="forecastDay5Input" type="text" tabindex="10" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay6Input">Forecast Day 6</label><br>
+				<input id="forecastDay6Input" type="text" tabindex="11" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
+				<label for="forecastDay7Input">Forecast Day 7</label><br>
+				<input id="forecastDay7Input" type="text" tabindex="12" inputmode="numeric"
+					placeholder="Enter room forecast"><br><br>
 			</section>
 			<section aria-label="Generated text report">
 				<h2>Text report</h2>
 				<button id="copyButton" type="button" disabled>Copy report</button>
 				<br>
-				<textarea id="reportOutput" rows="36" readonly
+				<textarea id="reportOutput" rows="36"
 					aria-label="Generated text report">Your generated text report will appear here.</textarea>
 			</section>
 			<p id="rowStatus">No report generated.</p>
@@ -164,13 +186,22 @@
 		const rowStatus = document.querySelector('#rowStatus');
 		const reportOutput = document.querySelector('#reportOutput');
 		const copyButton = document.querySelector('#copyButton');
+
 		const manualInputIds = [
 			'eaTodayInput',
 			'edTodayInput',
 			'roomBreakfastInput',
 			'roomsOnlyInput',
-			'todayEstimatedInput'
+			'todayEstimatedInput',
+			'forecastDay1Input',
+			'forecastDay2Input',
+			'forecastDay3Input',
+			'forecastDay4Input',
+			'forecastDay5Input',
+			'forecastDay6Input',
+			'forecastDay7Input'
 		];
+
 		let currentDrrSheet = null;
 		let currentStatisticSheet = null;
 
@@ -202,6 +233,7 @@
 			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return '';
 			const displayed = String(cell.w || cell.v).trim();
 			let percentage;
+
 			if (typeof cell.v === 'number') {
 				percentage = cell.v * 100;
 			} else if (displayed.includes('%')) {
@@ -210,7 +242,9 @@
 				const numericValue = Number(displayed.replace(/,/g, ''));
 				percentage = Number.isFinite(numericValue) ? numericValue * 100 : NaN;
 			}
+
 			if (!Number.isFinite(percentage)) return removeDecimals(displayed);
+
 			const wholePercent = Math.floor(percentage);
 			const roundedPercent = wholePercent + (percentage - wholePercent > 0.5 ? 1 : 0);
 			return `${roundedPercent}%`;
@@ -219,25 +253,33 @@
 		function getDateValue(sheet, address) {
 			const cell = sheet[address];
 			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return null;
+
 			if (cell.v instanceof Date && !Number.isNaN(cell.v.getTime())) {
 				return new Date(Date.UTC(cell.v.getFullYear(), cell.v.getMonth(), cell.v.getDate()));
 			}
+
 			if (typeof cell.v === 'number') {
 				const excelDate = XLSX.SSF.parse_date_code(cell.v);
 				if (excelDate) return new Date(Date.UTC(excelDate.y, excelDate.m - 1, excelDate.d));
 			}
+
 			const text = String(cell.w || cell.v).trim();
 			const monthDayYear = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+
 			if (monthDayYear) {
 				const month = Number(monthDayYear[1]);
 				const day = Number(monthDayYear[2]);
 				let year = Number(monthDayYear[3]);
+
 				if (year < 100) year += year < 30 ? 2000 : 1900;
+
 				const parsed = new Date(Date.UTC(year, month - 1, day));
 				if (parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) return parsed;
 			}
+
 			let parts = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
 			if (parts) return new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
+
 			const parsed = new Date(text);
 			return Number.isNaN(parsed.getTime()) ? null : new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
 		}
@@ -258,28 +300,44 @@
 
 		function calculateForecast(todayEstimated) {
 			if (todayEstimated === '') return '';
+
 			const numericValue = Number(todayEstimated.replace(/,/g, ''));
 			if (!Number.isFinite(numericValue)) return '';
+
 			return `${((numericValue / 31) * 100).toFixed(2)}%`;
 		}
 
 		function buildReport(sheet, statisticSheet) {
 			const value = (row, column) => getCellValue(sheet, `${column}${row}`);
+
 			const trio = (row, label, percent = false) => {
-				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				const get = percent
+					? (column) => getPercentValue(sheet, `${column}${row}`)
+					: (column) => value(row, column);
+
 				return `${label} : ${get('D')} // ${get('G')} // ${get('J')}`;
 			};
+
 			const mtd = (row, label, percent = false) => {
-				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				const get = percent
+					? (column) => getPercentValue(sheet, `${column}${row}`)
+					: (column) => value(row, column);
+
 				return `${label} : ${get('G')} vs ${get('H')}`;
 			};
+
 			const ytd = (row, label, percent = false) => {
-				const get = percent ? (column) => getPercentValue(sheet, `${column}${row}`) : (column) => value(row, column);
+				const get = percent
+					? (column) => getPercentValue(sheet, `${column}${row}`)
+					: (column) => value(row, column);
+
 				return `${label} : ${get('J')} vs ${get('K')}`;
 			};
+
 			const reportDate = getDateValue(sheet, 'L2');
 			const dateText = reportDate ? formatReportDate(reportDate) : '';
 			const [reportDay, reportMonth, reportYear] = dateText.split('/').map(Number);
+
 			const displayedReportDate = reportDate
 				? new Date(Date.UTC(reportYear, reportMonth - 1, reportDay))
 				: null;
@@ -291,24 +349,36 @@
 
 			const forecastDates = Array.from({ length: 7 }, (_, index) => {
 				if (!firstForecastDate) return '';
+
 				const date = new Date(firstForecastDate.getTime() + index * 86400000);
 				return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 			});
+
 			const blank = (label) => `${label} :`;
+
 			const segmentValue = (address) => address
 				? getCellValue(statisticSheet, address)
 				: '';
+
 			// const forecastLabelDate = forecastDates[0] || '';
 
 			const forecastLabelDate = displayedReportDate
 				? formatDate(
-					new Date(displayedReportDate.getTime() +  86400000),
+					new Date(displayedReportDate.getTime() + 86400000),
 					{ day: '2-digit', month: 'short', year: 'numeric' }
 				)
 				: '';
 
 			const todayEstimated = getManualInput('todayEstimatedInput');
 			const forecastValue = calculateForecast(todayEstimated);
+
+			const forecastValues = Array.from({ length: 7 }, (_, index) =>
+				getManualInput(`forecastDay${index + 1}Input`)
+			);
+
+			const forecastPercentages = forecastValues.map((forecast) =>
+				calculateForecast(forecast)
+			);
 
 			return [
 				'*Good Morning*',
@@ -371,7 +441,9 @@
 				`COMPANY : ${segmentValue('')}`,
 				'',
 				'*7 days forecast*',
-				...forecastDates.map((date) => `${date} :0 (00,00%)`),
+				...forecastDates.map((date, index) =>
+					`${date} :${forecastValues[index]} (${forecastPercentages[index]})`
+				),
 				'',
 				'VIP EA:',
 				blank('Company EA'),
@@ -380,7 +452,7 @@
 				blank('Group In House'),
 				blank('Group Arrivals'),
 				blank('Group Departures'),
-				"*Today's Events:*"
+				"Today's Events:"
 			].join('\n');
 		}
 
@@ -403,12 +475,14 @@
 				const copied = document.execCommand('copy');
 				copyButton.textContent = copied ? 'Copied' : 'Select and copy';
 			}
+
 			window.setTimeout(() => { copyButton.textContent = 'Copy report'; }, 1500);
 		});
 
 		fileInput.addEventListener('change', async () => {
 			const file = fileInput.files && fileInput.files[0];
 			if (!file) return;
+
 			fileName.textContent = file.name;
 
 			if (!window.XLSX) {
@@ -418,12 +492,18 @@
 
 			try {
 				const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-				const sheetName = workbook.SheetNames.find((name) => name.trim().toLowerCase() === 'drr');
+
+				const sheetName = workbook.SheetNames.find(
+					(name) => name.trim().toLowerCase() === 'drr'
+				);
+
 				if (!sheetName) {
 					showMessage('WORKSHEET NAMED "DRR" WAS NOT FOUND IN THIS FILE.');
 					return;
 				}
+
 				const sheet = workbook.Sheets[sheetName];
+
 				if (!sheet || !sheet['!ref']) {
 					showMessage('THE REPORT WORKSHEET IS EMPTY.');
 					return;
@@ -432,12 +512,14 @@
 				const statisticSheetName = workbook.SheetNames.find(
 					(name) => name.trim().toLowerCase() === 'statistic'
 				);
+
 				if (!statisticSheetName) {
 					showMessage('WORKSHEET NAMED "STATISTIC" WAS NOT FOUND IN THIS FILE.');
 					return;
 				}
 
 				const statisticSheet = workbook.Sheets[statisticSheetName];
+
 				if (!statisticSheet || !statisticSheet['!ref']) {
 					showMessage('THE STATISTIC WORKSHEET IS EMPTY.');
 					return;
@@ -445,9 +527,12 @@
 
 				currentDrrSheet = sheet;
 				currentStatisticSheet = statisticSheet;
+
 				refreshReport();
+
 				copyButton.disabled = false;
 				rowStatus.textContent = `Report generated from worksheets: ${sheetName} and ${statisticSheetName}`;
+
 			} catch {
 				showMessage('FILE COULD NOT BE READ. PLEASE CHOOSE A VALID EXCEL FILE.');
 			}
