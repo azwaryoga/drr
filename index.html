@@ -4,12 +4,12 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Excel Report Generator</title>
+	<title>DRR REPORT GENERATOR</title>
 	<style>
 		:root {
-			font-family: "Lucida Console", "Courier New", monospace;
-			color: #111;
-			background: #008080;
+			font-family: Tahoma, Arial, sans-serif;
+			color: #222222;
+			background: #D6DFF7;
 		}
 
 		* {
@@ -19,22 +19,27 @@
 		body {
 			margin: 0;
 			padding: 28px 14px;
+			background: #a0a0a0;
 		}
 
 		main {
-			width: min(900px, 100%);
+			width: min(1000px, 100%);
 			margin: 0 auto;
-			border: 2px outset #ddd;
-			background: #dddccb;
+			border: 2px solid;
+			border-color: #ffffff #404040 #404040 #ffffff;
+			background: #ECE9D8;
+			box-shadow: 2px 2px 0 #000;
 		}
 
 		.program-title {
 			margin: 0;
-			padding: 8px 10px;
-			background: #000080;
-			color: #fff;
+			padding: 10px 12px;
+			background: linear-gradient(90deg, #214E7A, #3A6EA5);
+    color: #FFFFFF;
+			font-family: Tahoma, Arial, sans-serif;
 			font-size: 14px;
-			letter-spacing: .04em;
+			font-weight: bold;
+			letter-spacing: 0;
 		}
 
 		.program-body {
@@ -43,31 +48,38 @@
 
 		p {
 			font-size: 12px;
+			line-height: 1.5;
 		}
 
 		section {
-			margin: 14px 0;
-			padding: 10px;
+			margin: 12px 0;
+			padding: 12px;
 			border: 1px solid #808080;
+			background: #ECE9D8;
 		}
 
 		button {
-			padding: 5px 10px;
-			border: 2px outset #eee;
+			padding: 5px 12px;
+			border: 2px solid;
+			border-color: #ffffff #404040 #404040 #ffffff;
 			border-radius: 0;
-			background: #c0c0c0;
-			color: #111;
-			font: inherit;
-			font-size: 12px;
+			background: #d4d0c8;
+			color: #000;
+			font: 12px Tahoma, Arial, sans-serif;
 			cursor: pointer;
 		}
 
-		button:active {
-			border-style: inset;
+		button:hover:not(:disabled) {
+			background: #e4e1da;
+		}
+
+		button:active:not(:disabled) {
+			border-color: #404040 #ffffff #ffffff #404040;
+			padding: 6px 11px 4px 13px;
 		}
 
 		button:disabled {
-			color: #777;
+			color: #808080;
 			cursor: default;
 		}
 
@@ -77,17 +89,77 @@
 		}
 
 		h2 {
-			margin: 0 0 9px;
+			margin: 0 0 12px;
 			font-size: 13px;
+			font-weight: bold;
+		}
+
+		.manual-input-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 12px;
+		}
+
+		.manual-input-group {
+			min-width: 0;
+			padding: 10px;
+			border: 1px solid;
+			border-color: #808080 #ffffff #ffffff #808080;
+			background: #F5F3EA;
+		}
+
+		.manual-input-group h3 {
+			 color: #214E7A;
+			margin: 0 0 12px;
+			font-size: 12px;
+			font-weight: bold;
+		}
+
+		.manual-field {
+			display: grid;
+			grid-template-columns: 110px 1fr;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 9px;
+		}
+
+		.manual-field label {
+			font-size: 11px;
+		}
+
+		.manual-field input {
+			width: 100%;
+			min-width: 0;
+			padding: 5px;
+			border: 2px solid;
+			border-color: #404040 #ffffff #ffffff #404040;
+			border-radius: 0;
+			outline: none;
+			background: #fff;
+			color: #000;
+			font: 12px Tahoma, Arial, sans-serif;
+		}
+
+		.manual-field input:focus {
+			outline: 1px dotted #000;
+			outline-offset: -4px;
+		}
+
+		.forecast-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0 10px;
 		}
 
 		#reportOutput {
 			display: block;
 			width: 100%;
-			margin-top: 8px;
+			margin-top: 10px;
 			padding: 10px;
-			border: 2px inset #eee;
+			border: 2px solid;
+			border-color: #404040 #ffffff #ffffff #404040;
 			border-radius: 0;
+			outline: none;
 			background: #fff;
 			color: #000080;
 			font: 12px/1.5 "Lucida Console", "Courier New", monospace;
@@ -95,10 +167,16 @@
 			overflow: auto;
 		}
 
+		#reportOutput:focus {
+			outline: 1px dotted #000;
+			outline-offset: -5px;
+		}
+
 		#rowStatus {
 			margin: 0;
-			padding: 7px 10px;
-			border-top: 1px solid #888;
+			padding: 8px 10px;
+			border-top: 1px solid #808080;
+			background: #d4d0c8;
 		}
 
 		@media (max-width: 600px) {
@@ -110,6 +188,10 @@
 				padding: 8px;
 			}
 
+			.manual-input-grid {
+				grid-template-columns: 1fr;
+			}
+
 			#reportOutput {
 				font-size: 11px;
 			}
@@ -119,9 +201,9 @@
 
 <body>
 	<main>
-		<h1 class="program-title">EXCEL REPORT GENERATOR</h1>
+		<h1 class="program-title">by AZWARYOGA</h1>
 		<div class="program-body">
-			<p>Upload an Excel file to create one hotel report from the mapped cells.</p>
+			<!-- <p>Upload an Excel file to create one hotel report from the mapped cells.</p> -->
 			<section aria-label="Upload spreadsheet">
 				<button id="uploadButton" type="button">Upload Excel</button>
 				<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
@@ -129,44 +211,95 @@
 			</section>
 			<section aria-label="Manual report inputs">
 				<h2>Manual report inputs</h2>
-				<p>Enter the values below. The report will update automatically after an Excel file is uploaded.</p>
-				<label for="eaTodayInput">EA Today</label><br>
-				<input id="eaTodayInput" type="text" tabindex="1" inputmode="numeric"
-					placeholder="Enter EA Today"><br><br>
-				<label for="edTodayInput">ED Today</label><br>
-				<input id="edTodayInput" type="text" tabindex="2" inputmode="numeric"
-					placeholder="Enter ED Today"><br><br>
-				<label for="roomBreakfastInput">Room Breakfast</label><br>
-				<input id="roomBreakfastInput" type="text" tabindex="3" inputmode="numeric"
-					placeholder="Enter Room Breakfast"><br><br>
-				<label for="roomsOnlyInput">Rooms Only</label><br>
-				<input id="roomsOnlyInput" type="text" tabindex="4" inputmode="numeric"
-					placeholder="Enter Rooms Only"><br><br>
-				<label for="todayEstimatedInput">Today Estimated</label><br>
-				<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal"
-					placeholder="Enter Today Estimated"><br><br>
+				<!-- <p>Enter the values below. The report will update automatically after an Excel file is uploaded.</p> -->
 
-				<label for="forecastDay1Input">Forecast Day 1</label><br>
-				<input id="forecastDay1Input" type="text" tabindex="6" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay2Input">Forecast Day 2</label><br>
-				<input id="forecastDay2Input" type="text" tabindex="7" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay3Input">Forecast Day 3</label><br>
-				<input id="forecastDay3Input" type="text" tabindex="8" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay4Input">Forecast Day 4</label><br>
-				<input id="forecastDay4Input" type="text" tabindex="9" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay5Input">Forecast Day 5</label><br>
-				<input id="forecastDay5Input" type="text" tabindex="10" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay6Input">Forecast Day 6</label><br>
-				<input id="forecastDay6Input" type="text" tabindex="11" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
-				<label for="forecastDay7Input">Forecast Day 7</label><br>
-				<input id="forecastDay7Input" type="text" tabindex="12" inputmode="numeric"
-					placeholder="Enter room forecast"><br><br>
+				<div class="manual-input-grid">
+
+					<div class="manual-input-group">
+						<h3>Input Data</h3>
+
+						<div class="manual-field">
+							<label for="eaTodayInput">EA Today</label>
+							<input id="eaTodayInput" type="text" tabindex="1" inputmode="numeric"
+								placeholder="Enter EA Today">
+						</div>
+
+						<div class="manual-field">
+							<label for="edTodayInput">ED Today</label>
+							<input id="edTodayInput" type="text" tabindex="2" inputmode="numeric"
+								placeholder="Enter ED Today">
+						</div>
+
+						<div class="manual-field">
+							<label for="roomBreakfastInput">Room Breakfast</label>
+							<input id="roomBreakfastInput" type="text" tabindex="3" inputmode="numeric"
+								placeholder="Enter Room Breakfast">
+						</div>
+
+						<div class="manual-field">
+							<label for="roomsOnlyInput">Rooms Only</label>
+							<input id="roomsOnlyInput" type="text" tabindex="4" inputmode="numeric"
+								placeholder="Enter Rooms Only">
+						</div>
+
+						<div class="manual-field">
+							<label for="todayEstimatedInput">Today Estimated</label>
+							<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal"
+								placeholder="Enter Today Estimated">
+						</div>
+					</div>
+
+					<div class="manual-input-group">
+						<h3>7 Days Forecast</h3>
+
+						<div class="forecast-grid">
+
+							<div class="manual-field">
+								<label for="forecastDay1Input">Day 1</label>
+								<input id="forecastDay1Input" type="text" tabindex="6" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay2Input">Day 2</label>
+								<input id="forecastDay2Input" type="text" tabindex="7" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay3Input">Day 3</label>
+								<input id="forecastDay3Input" type="text" tabindex="8" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay4Input">Day 4</label>
+								<input id="forecastDay4Input" type="text" tabindex="9" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay5Input">Day 5</label>
+								<input id="forecastDay5Input" type="text" tabindex="10" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay6Input">Day 6</label>
+								<input id="forecastDay6Input" type="text" tabindex="11" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+							<div class="manual-field">
+								<label for="forecastDay7Input">Day 7</label>
+								<input id="forecastDay7Input" type="text" tabindex="12" inputmode="numeric"
+									placeholder="Rooms">
+							</div>
+
+						</div>
+					</div>
+
+				</div>
 			</section>
 			<section aria-label="Generated text report">
 				<h2>Text report</h2>
