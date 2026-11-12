@@ -1,6 +1,6 @@
-
 <!doctype html>
 <html lang="en">
+
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,14 +11,23 @@
 			color: #111;
 			background: #008080;
 		}
-		* { box-sizing: border-box; }
-		body { margin: 0; padding: 28px 14px; }
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			padding: 28px 14px;
+		}
+
 		main {
 			width: min(900px, 100%);
 			margin: 0 auto;
 			border: 2px outset #ddd;
 			background: #dddccb;
 		}
+
 		.program-title {
 			margin: 0;
 			padding: 8px 10px;
@@ -27,9 +36,21 @@
 			font-size: 14px;
 			letter-spacing: .04em;
 		}
-		.program-body { padding: 12px; }
-		p { font-size: 12px; }
-		section { margin: 14px 0; padding: 10px; border: 1px solid #808080; }
+
+		.program-body {
+			padding: 12px;
+		}
+
+		p {
+			font-size: 12px;
+		}
+
+		section {
+			margin: 14px 0;
+			padding: 10px;
+			border: 1px solid #808080;
+		}
+
 		button {
 			padding: 5px 10px;
 			border: 2px outset #eee;
@@ -40,10 +61,26 @@
 			font-size: 12px;
 			cursor: pointer;
 		}
-		button:active { border-style: inset; }
-		button:disabled { color: #777; cursor: default; }
-		#fileName, #rowStatus { font-size: 11px; }
-		h2 { margin: 0 0 9px; font-size: 13px; }
+
+		button:active {
+			border-style: inset;
+		}
+
+		button:disabled {
+			color: #777;
+			cursor: default;
+		}
+
+		#fileName,
+		#rowStatus {
+			font-size: 11px;
+		}
+
+		h2 {
+			margin: 0 0 9px;
+			font-size: 13px;
+		}
+
 		#reportOutput {
 			display: block;
 			width: 100%;
@@ -57,45 +94,66 @@
 			white-space: pre;
 			overflow: auto;
 		}
-		#rowStatus { margin: 0; padding: 7px 10px; border-top: 1px solid #888; }
+
+		#rowStatus {
+			margin: 0;
+			padding: 7px 10px;
+			border-top: 1px solid #888;
+		}
+
 		@media (max-width: 600px) {
-			body { padding: 8px; }
-			.program-body { padding: 8px; }
-			#reportOutput { font-size: 11px; }
+			body {
+				padding: 8px;
+			}
+
+			.program-body {
+				padding: 8px;
+			}
+
+			#reportOutput {
+				font-size: 11px;
+			}
 		}
 	</style>
 </head>
+
 <body>
 	<main>
 		<h1 class="program-title">EXCEL REPORT GENERATOR</h1>
 		<div class="program-body">
-		<p>Upload an Excel file to create one hotel report from the mapped cells.</p>
-		<section aria-label="Upload spreadsheet">
-			<button id="uploadButton" type="button">Upload Excel</button>
-			<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
-			<span id="fileName">No file selected</span>
-		</section>
-		<section aria-label="Manual report inputs">
-			<h2>Manual report inputs</h2>
-			<p>Enter the values below. The report will update automatically after an Excel file is uploaded.</p>
-			<label for="eaTodayInput">EA Today</label><br>
-			<input id="eaTodayInput" type="text" tabindex="1" inputmode="numeric" placeholder="Enter EA Today"><br><br>
-			<label for="edTodayInput">ED Today</label><br>
-			<input id="edTodayInput" type="text" tabindex="2" inputmode="numeric" placeholder="Enter ED Today"><br><br>
-			<label for="roomBreakfastInput">Room Breakfast</label><br>
-			<input id="roomBreakfastInput" type="text" tabindex="3" inputmode="numeric" placeholder="Enter Room Breakfast"><br><br>
-			<label for="roomsOnlyInput">Rooms Only</label><br>
-			<input id="roomsOnlyInput" type="text" tabindex="4" inputmode="numeric" placeholder="Enter Rooms Only"><br><br>
-			<label for="todayEstimatedInput">Today Estimated</label><br>
-			<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal" placeholder="Enter Today Estimated">
-		</section>
-		<section aria-label="Generated text report">
-			<h2>Text report</h2>
-			<button id="copyButton" type="button" disabled>Copy report</button>
-			<br>
-			<textarea id="reportOutput" rows="36" readonly aria-label="Generated text report">Your generated text report will appear here.</textarea>
-		</section>
-		<p id="rowStatus">No report generated.</p>
+			<p>Upload an Excel file to create one hotel report from the mapped cells.</p>
+			<section aria-label="Upload spreadsheet">
+				<button id="uploadButton" type="button">Upload Excel</button>
+				<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+				<span id="fileName">No file selected</span>
+			</section>
+			<section aria-label="Manual report inputs">
+				<h2>Manual report inputs</h2>
+				<p>Enter the values below. The report will update automatically after an Excel file is uploaded.</p>
+				<label for="eaTodayInput">EA Today</label><br>
+				<input id="eaTodayInput" type="text" tabindex="1" inputmode="numeric"
+					placeholder="Enter EA Today"><br><br>
+				<label for="edTodayInput">ED Today</label><br>
+				<input id="edTodayInput" type="text" tabindex="2" inputmode="numeric"
+					placeholder="Enter ED Today"><br><br>
+				<label for="roomBreakfastInput">Room Breakfast</label><br>
+				<input id="roomBreakfastInput" type="text" tabindex="3" inputmode="numeric"
+					placeholder="Enter Room Breakfast"><br><br>
+				<label for="roomsOnlyInput">Rooms Only</label><br>
+				<input id="roomsOnlyInput" type="text" tabindex="4" inputmode="numeric"
+					placeholder="Enter Rooms Only"><br><br>
+				<label for="todayEstimatedInput">Today Estimated</label><br>
+				<input id="todayEstimatedInput" type="text" tabindex="5" inputmode="decimal"
+					placeholder="Enter Today Estimated">
+			</section>
+			<section aria-label="Generated text report">
+				<h2>Text report</h2>
+				<button id="copyButton" type="button" disabled>Copy report</button>
+				<br>
+				<textarea id="reportOutput" rows="36" readonly
+					aria-label="Generated text report">Your generated text report will appear here.</textarea>
+			</section>
+			<p id="rowStatus">No report generated.</p>
 		</div>
 	</main>
 
@@ -240,7 +298,15 @@
 			const segmentValue = (address) => address
 				? getCellValue(statisticSheet, address)
 				: '';
-			const forecastLabelDate = forecastDates[0] || '';
+			// const forecastLabelDate = forecastDates[0] || '';
+
+			const forecastLabelDate = displayedReportDate
+				? formatDate(
+					new Date(displayedReportDate.getTime() +  86400000),
+					{ day: '2-digit', month: 'short', year: 'numeric' }
+				)
+				: '';
+
 			const todayEstimated = getManualInput('todayEstimatedInput');
 			const forecastValue = calculateForecast(todayEstimated);
 
@@ -388,4 +454,5 @@
 		});
 	</script>
 </body>
+
 </html>
