@@ -36,7 +36,7 @@
 			margin: 0;
 			padding: 10px 12px;
 			background: linear-gradient(90deg, #1a69df, #3f8fe4);
-    color: #FFFFFF;
+			color: #FFFFFF;
 			font-family: Tahoma, Arial, sans-serif;
 			font-size: 14px;
 			font-weight: bold;
@@ -89,6 +89,17 @@
 			font-size: 11px;
 		}
 
+		#dateFormatSelect {
+			margin-left: 6px;
+			padding: 5px;
+			border: 2px solid;
+			border-color: #404040 #ffffff #ffffff #404040;
+			border-radius: 0;
+			background: #fff;
+			color: #000;
+			font: 12px Tahoma, Arial, sans-serif;
+		}
+
 		h2 {
 			margin: 0 0 12px;
 			font-size: 13px;
@@ -110,7 +121,7 @@
 		}
 
 		.manual-input-group h3 {
-			 color: #214E7A;
+			color: #214E7A;
 			margin: 0 0 12px;
 			font-size: 12px;
 			font-weight: bold;
@@ -207,8 +218,15 @@
 			<!-- <p>Upload an Excel file to create one hotel report from the mapped cells.</p> -->
 			<section aria-label="Upload spreadsheet">
 				<button id="uploadButton" type="button">Upload Excel</button>
+
+				<select id="dateFormatSelect" aria-label="Excel date format">
+					<option value="DD/MM" selected>DD/MM</option>
+					<option value="MM/DD">MM/DD</option>
+				</select>
+
 				<input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
 				<span id="fileName">No file selected</span>
+
 			</section>
 			<section aria-label="Manual report inputs">
 				<h2>Manual report inputs</h2>
@@ -384,44 +402,96 @@
 			return `${roundedPercent}%`;
 		}
 
+
 		function getDateValue(sheet, address) {
 			const cell = sheet[address];
 			if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return null;
 
 			if (cell.v instanceof Date && !Number.isNaN(cell.v.getTime())) {
-				return new Date(Date.UTC(cell.v.getFullYear(), cell.v.getMonth(), cell.v.getDate()));
+				return new Date(Date.UTC(
+					cell.v.getFullYear(),
+					cell.v.getMonth(),
+					cell.v.getDate()
+				));
 			}
 
+			const dateFormat = document.querySelector('#dateFormatSelect').value;
+
+			// Check displayed date text first, before Excel serial number.
+			const textCandidates = [
+				cell.w,
+				typeof cell.v === 'string' ? cell.v : null
+			];
+
+			for (const candidate of textCandidates) {
+				if (!candidate) continue;
+
+				const text = String(candidate).trim();
+				const dateParts = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+
+				if (dateParts) {
+					const first = Number(dateParts[1]);
+					const second = Number(dateParts[2]);
+					let year = Number(dateParts[3]);
+
+					const day = dateFormat === 'DD/MM' ? first : second;
+					const month = dateFormat === 'DD/MM' ? second : first;
+
+					if (year < 100) year += year < 30 ? 2000 : 1900;
+
+					const parsed = new Date(Date.UTC(year, month - 1, day));
+
+					if (
+						parsed.getUTCFullYear() === year &&
+						parsed.getUTCMonth() === month - 1 &&
+						parsed.getUTCDate() === day
+					) {
+						return parsed;
+					}
+
+					return null;
+				}
+
+				const parts = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+
+				if (parts) {
+					return new Date(Date.UTC(
+						Number(parts[1]),
+						Number(parts[2]) - 1,
+						Number(parts[3])
+					));
+				}
+			}
+
+			// Fallback for actual Excel date serial numbers.
 			if (typeof cell.v === 'number') {
 				const excelDate = XLSX.SSF.parse_date_code(cell.v);
-				if (excelDate) return new Date(Date.UTC(excelDate.y, excelDate.m - 1, excelDate.d));
+
+				if (excelDate) {
+					return new Date(Date.UTC(
+						excelDate.y,
+						excelDate.m - 1,
+						excelDate.d
+					));
+				}
 			}
 
-			const text = String(cell.w || cell.v).trim();
-			const monthDayYear = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+			const parsed = new Date(String(cell.v).trim());
 
-			if (monthDayYear) {
-				const month = Number(monthDayYear[1]);
-				const day = Number(monthDayYear[2]);
-				let year = Number(monthDayYear[3]);
-
-				if (year < 100) year += year < 30 ? 2000 : 1900;
-
-				const parsed = new Date(Date.UTC(year, month - 1, day));
-				if (parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) return parsed;
-			}
-
-			let parts = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-			if (parts) return new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
-
-			const parsed = new Date(text);
-			return Number.isNaN(parsed.getTime()) ? null : new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+			return Number.isNaN(parsed.getTime())
+				? null
+				: new Date(Date.UTC(
+					parsed.getFullYear(),
+					parsed.getMonth(),
+					parsed.getDate()
+				));
 		}
 
 		function formatReportDate(date) {
-			const month = String(date.getUTCMonth() + 1).padStart(2, '0');
 			const day = String(date.getUTCDate()).padStart(2, '0');
-			return `${month}/${day}/${date.getUTCFullYear()}`;
+			const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+
+			return `${day}/${month}/${date.getUTCFullYear()}`;
 		}
 
 		function formatDate(date, options) {
@@ -598,6 +668,7 @@
 		manualInputIds.forEach((id) => {
 			document.querySelector(`#${id}`).addEventListener('input', refreshReport);
 		});
+		document.querySelector('#dateFormatSelect').addEventListener('change', refreshReport);
 
 		copyButton.addEventListener('click', async () => {
 			try {
